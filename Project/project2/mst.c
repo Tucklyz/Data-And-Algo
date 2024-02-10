@@ -1,176 +1,140 @@
 #include <stdio.h>
+#include <stdbool.h>
+#include <string.h>
 #include <stdlib.h>
-#include <limits.h>
 
-// โครงสร้างข้อมูลสำหรับแทนเส้นเชื่อมในกราฟ
-struct Edge {
-    int src, dest, weight;
-};
+#define INF 9999999
 
-// โครงสร้างข้อมูลสำหรับแทนกราฟ
-struct Graph {
-    int V, E;
-    struct Edge* edges;
-};
+typedef struct edge {
+  int u, v, w;
+} edge;
 
-// โครงสร้างข้อมูลสำหรับตัวแทนเซต (Subset)
-struct Subset {
-    int parent;
-    int rank;
-};
+typedef struct edge_list {
+  edge *data;
+  int n;
+} edge_list;
 
-// ฟังก์ชันสร้างกราฟ
-struct Graph* createGraph(int V, int E) {
-    struct Graph* graph = (struct Graph*)malloc(sizeof(struct Graph));
-    graph->V = V;
-    graph->E = E;
-    graph->edges = (struct Edge*)malloc(E * sizeof(struct Edge));
-    return graph;
-}
+edge_list elist;
 
-// ฟังก์ชันสร้าง Subset
-struct Subset* createSubsets(int V) {
-    struct Subset* subsets = (struct Subset*)malloc(V * sizeof(struct Subset));
-    for (int i = 0; i < V; ++i) {
-        subsets[i].parent = i;
-        subsets[i].rank = 0;
-    }
-    return subsets;
-}
+void kruskalAlgo(int V, int Graph[V][V]);
+int find(int belongs[], int vertexno);
+void applyUnion(int belongs[], int c1, int c2, int V);
+void sort();
+void primAlgo(int V, int Graph[V][V]);
 
-// ฟังก์ชันหาเซตของตัวแทน (Path Compression)
-int find(struct Subset subsets[], int i) {
-    if (subsets[i].parent != i) {
-        subsets[i].parent = find(subsets, subsets[i].parent);
-    }
-    return subsets[i].parent;
-}
-
-// ฟังก์ชันเชื่อมตัวแทนสองเซต (Union by Rank)
-void unionSets(struct Subset subsets[], int x, int y) {
-    int rootX = find(subsets, x);
-    int rootY = find(subsets, y);
-
-    if (subsets[rootX].rank < subsets[rootY].rank) {
-        subsets[rootX].parent = rootY;
-    } else if (subsets[rootX].rank > subsets[rootY].rank) {
-        subsets[rootY].parent = rootX;
-    } else {
-        subsets[rootY].parent = rootX;
-        subsets[rootX].rank++;
-    }
-}
-
-// ฟังก์ชันสำหรับ Prim's Algorithm
-void primMST(struct Graph* graph) {
-    int V = graph->V;
-    int parent[V];
-    int key[V];
-    int inMST[V];
-
-    for (int i = 0; i < V; ++i) {
-        key[i] = INT_MAX;
-        inMST[i] = 0;
-    }
-
-    key[0] = 0;
-    parent[0] = -1;
-
-    for (int count = 0; count < V - 1; ++count) {
-        int u, minKey = INT_MAX;
-        for (int v = 0; v < V; ++v) {
-            if (!inMST[v] && key[v] < minKey) {
-                minKey = key[v];
-                u = v;
-            }
-        }
-
-        inMST[u] = 1;
-
-        for (int v = 0; v < V; ++v) {
-            int weight = graph->edges[u * V + v].weight;
-            if (weight && !inMST[v] && weight < key[v]) {
-                parent[v] = u;
-                key[v] = weight;
-            }
-        }
-    }
-
-    printf("Minimum Spanning Tree (Prim):\n");
-    for (int i = 1; i < V; ++i) {
-        printf("%d - %d\n", parent[i], i);
-    }
-}
-// ฟังก์ชันสำหรับเปรียบเทียบ
-int compareEdges(const void* a, const void* b) {
-    return ((struct Edge*)a)->weight - ((struct Edge*)b)->weight;
-}
-
-
-//ฟังก์ชันสำหรับ Kruskal's Algorithm
-void kruskalMST(struct Graph* graph) {
-    int V = graph->V;
-    int E = graph->E;
-
-    struct Edge result[V - 1];
-
-    qsort(graph->edges, E, sizeof(graph->edges[0]), compareEdges);
-
-    struct Subset* subsets = createSubsets(V);
-
-    int i = 0, e = 0;
-    while (e < V - 1) {
-        struct Edge nextEdge = graph->edges[i++];
-
-        int x = find(subsets, nextEdge.src);
-        int y = find(subsets, nextEdge.dest);
-
-        if (x != y) {
-            result[e++] = nextEdge;
-            unionSets(subsets, x, y);
-        }
-    }
-
-    printf("Minimum Spanning Tree (Kruskal):\n");
-    for (int i = 0; i < V - 1; ++i) {
-        printf("%d - %d\n", result[i].src, result[i].dest);
-    }
-
-    free(subsets);
-}
-
-// ฟังก์ชันทดสอบ
 int main() {
-    int V = 4;
-    int E = 5;
+  int V;
+  printf("Please enter the number of vertices: ");
+  scanf("%d", &V);
 
-    struct Graph* graph = createGraph(V, E);
+  int Graph[V][V];
+  for (int i = 0; i < V; i++) {
+    Graph[i][i] = 0;
+    for (int j = i+1; j < V; j++) {
+      printf("Weight of Edge (%c) - (%c) = ", i+'A', j+'A');
+      scanf("%d", &Graph[i][j]);
+      Graph[j][i] = Graph[i][j];
+    }
+  }
+  system("cls");
+  printf("Kruskal's Algorithm:\n");
+  kruskalAlgo(V, Graph);
 
-    graph->edges[0].src = 0;
-    graph->edges[0].dest = 1;
-    graph->edges[0].weight = 10;
+  printf("\nPrim's Algorithm:\n");
+  primAlgo(V, Graph);
 
-    graph->edges[1].src = 0;
-    graph->edges[1].dest = 2;
-    graph->edges[1].weight = 6;
-
-    graph->edges[2].src = 0;
-    graph->edges[2].dest = 3;
-    graph->edges[2].weight = 5;
-
-    graph->edges[3].src = 1;
-    graph->edges[3].dest = 3;
-    graph->edges[3].weight = 15;
-
-    graph->edges[4].src = 2;
-    graph->edges[4].dest = 3;
-    graph->edges[4].weight = 4;
-
-    primMST(graph);
-    //kruskalMST(graph);
-
-    free(graph->edges);
-    free(graph);
-
-    return 0;
+  return 0;
 }
+
+void kruskalAlgo(int V, int Graph[V][V]) {
+  int belongs[V], i, j, cno1, cno2;
+  elist.n = 0;
+  elist.data = malloc(V * V * sizeof(edge)); 
+
+  for (i = 1; i < V; i++)
+    for (j = 0; j < i; j++) {
+      if (Graph[i][j] != 0) {
+        elist.data[elist.n].u = i;
+        elist.data[elist.n].v = j;
+        elist.data[elist.n].w = Graph[i][j];
+        elist.n++;
+      }
+    }
+
+  sort();
+
+  for (i = 0; i < V; i++)
+    belongs[i] = i;
+
+  printf("Edge : Weight\n");
+
+  for (i = 0; i < elist.n; i++) {
+    cno1 = find(belongs, elist.data[i].u);
+    cno2 = find(belongs, elist.data[i].v);
+
+    if (cno1 != cno2) {
+      printf("%c - %c : %d\n", elist.data[i].u+'A', elist.data[i].v+'A', elist.data[i].w);
+      applyUnion(belongs, cno1, cno2, V);
+    }
+  }
+
+  free(elist.data); 
+}
+
+int find(int belongs[], int vertexno) {
+  return (belongs[vertexno]);
+}
+
+void applyUnion(int belongs[], int c1, int c2, int V) {
+  int i;
+
+  for (i = 0; i < V; i++)
+    if (belongs[i] == c2)
+      belongs[i] = c1;
+}
+
+void sort() {
+  int i, j;
+  edge temp;
+
+  for (i = 1; i < elist.n; i++)
+    for (j = 0; j < elist.n - 1; j++)
+      if (elist.data[j].w > elist.data[j + 1].w) {
+        temp = elist.data[j];
+        elist.data[j] = elist.data[j + 1];
+        elist.data[j + 1] = temp;
+      }
+}
+
+void primAlgo(int V, int Graph[V][V]) {
+  int no_edge;
+  int selected[V];
+  memset(selected, false, sizeof(selected));
+  no_edge = 0;
+  selected[0] = true;
+  int x, y;
+  printf("Edge : Weight\n");
+
+  while (no_edge < V - 1) {
+    int min = INF;
+    x = 0;
+    y = 0;
+    for (int i = 0; i < V; i++) {
+      if (selected[i]) {
+        for (int j = 0; j < V; j++) {
+          if (!selected[j] && Graph[i][j]) {
+            if (min > Graph[i][j]) {
+              min = Graph[i][j];
+              x = i;
+              y = j;
+            }
+          }
+        }
+      }
+    }
+    printf("%c - %c : %d\n", x+'A', y+'A', Graph[x][y]);
+    selected[y] = true;
+    no_edge++;
+  }
+}
+
